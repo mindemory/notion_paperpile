@@ -6,8 +6,8 @@ import csv
 
 with open("../notion_ids.csv", 'r') as f:
     f_csv = f.readlines()
-database_id = "10fd028dec1346879b6185e0194385e7"
-secret = "secret_wrqIKPsQvlNUzwheoYpc71sFpYQ6wsI8zxz1z6bQg4C"
+database_id = f_csv[1]
+secret = f_csv[2]
 headers_read = {
     "Authorization": "Bearer " + secret,
     "Notion-Version": "2022-02-22"
