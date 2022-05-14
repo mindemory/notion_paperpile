@@ -1,0 +1,71 @@
+{
+    "parent": { "database_id": 4},
+    "properties": {
+            "Status": {
+                "id": "HYiC",
+                "type": "select",
+                "select": null
+            },
+            "Topic": {
+                "id": "PYQt",
+                "type": "multi_select",
+                "multi_select": []
+            },
+            "Summary": {
+                "id": "V%40Fy",
+                "type": "rich_text",
+                "rich_text": []
+            },
+            "Title": {
+                "id": "t%5Ef%3A",
+                "type": "rich_text",
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": "Yet again check", 
+                            "link": null
+                        },
+                        "annotations": {
+                            "bold": false,
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                            "code": false,
+                            "color": "default"
+                        },
+                        "plain_text": "Yet again check", 
+                        "href": null
+                    }
+                ]
+            },
+            "Methods": {
+                "id": "~q%3Ee",
+                "type": "multi_select",
+                "multi_select": []
+            },
+            "Author, Year": {
+                "id": "title",
+                "type": "title",
+                "title": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": "Martin et al., 2020",
+                            "link": null
+                        },
+                        "annotations": {
+                            "bold": false,
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                            "code": false,
+                            "color": "default"
+                        },
+                        "plain_text": "Martin et al., 2020",
+                        "href": null
+                    }
+                ]
+            }
+        }
+    }
