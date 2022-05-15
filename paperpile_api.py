@@ -43,7 +43,6 @@ for toto in range(b+1):
         existing_titles[page_init+n] = blurb
 print('There are ' + str(len(existing_titles)) + ' existing entries on Notion.\n')
 
-#open a bibtex file
 parser = bibtex.Parser()
 bibdata = parser.parse_file("paperpile_references.bib")
 

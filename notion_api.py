@@ -1,15 +1,6 @@
 import requests, json
 import csv
 
-def readDatabase(database_id, headers):
-    read_url = "https://api.notion.com/v1/databases/"+database_id
-    res = requests.request("GET", read_url, headers=headers)
-    data = res.json()
-    print(res.status_code)
-    #print(res.text)
-    with open('../db.json', 'w', encoding = 'utf8') as f:
-        json.dump(data, f, ensure_ascii = False)
-
 def queryDatabase(database_id, headers):
     query_url = "https://api.notion.com/v1/databases/"+database_id+"/query"
     blurb = '{"start_cursor": null}'
