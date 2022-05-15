@@ -1,10 +1,28 @@
 {
     "parent": { "database_id": 4},
     "properties": {
-            "Status": {
-                "id": "HYiC",
-                "type": "select",
-                "select": null
+            "Journal": {
+                "id": "BBQM",
+                "type": "rich_text",
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": [],
+                            "link": null
+                        },
+                        "annotations": {
+                            "bold": false,
+                            "italic": false,
+                            "strikethrough": false,
+                            "underline": false,
+                            "code": false,
+                            "color": "default"
+                        },
+                        "plain_text": [],
+                        "href": null
+                    }
+                ]
             },
             "Topic": {
                 "id": "PYQt",
@@ -16,6 +34,15 @@
                 "type": "rich_text",
                 "rich_text": []
             },
+            "Status": {
+                "id": "kGP%3F",
+                "type": "select",
+                "select": {
+                    "id": "tT=n",
+                    "name": "Unread",
+                    "color": "red"
+                }
+            },
             "Title": {
                 "id": "t%5Ef%3A",
                 "type": "rich_text",
@@ -23,7 +50,7 @@
                     {
                         "type": "text",
                         "text": {
-                            "content": "Yet again check", 
+                            "content": [], 
                             "link": null
                         },
                         "annotations": {
@@ -34,7 +61,7 @@
                             "code": false,
                             "color": "default"
                         },
-                        "plain_text": "Yet again check", 
+                        "plain_text": [], 
                         "href": null
                     }
                 ]
@@ -51,7 +78,7 @@
                     {
                         "type": "text",
                         "text": {
-                            "content": "Martin et al., 2020",
+                            "content": [],
                             "link": null
                         },
                         "annotations": {
@@ -62,7 +89,7 @@
                             "code": false,
                             "color": "default"
                         },
-                        "plain_text": "Martin et al., 2020",
+                        "plain_text": [],
                         "href": null
                     }
                 ]
