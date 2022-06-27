@@ -7458,3 +7458,46 @@
   keywords = "computation; electrophysiology; retinal ganglion cells; vision",
   language = "en"
 }
+
+@UNPUBLISHED{Lee2020-dr,
+  title    = "{YASS}: Yet Another Spike Sorter applied to large-scale
+              multi-electrode array recordings in primate retina",
+  author   = "Lee, Jinhyung and Mitelut, Catalin and Shokri, Hooshmand and
+              Kinsella, Ian and Dethe, Nishchal and Wu, Shenghao and Li, Kevin
+              and Reyes, Eduardo Blancas and Turcu, Denis and Batty, Eleanor
+              and Kim, Young Joon and Brackbill, Nora and Kling, Alexandra and
+              Goetz, Georges and Chichilnisky, E J and Carlson, David and
+              Paninski, Liam",
+  abstract = "Abstract Spike sorting is a critical first step in extracting
+              neural signals from large-scale multi-electrode array (MEA) data.
+              This manuscript presents several new techniques that make MEA
+              spike sorting more robust and accurate. Our pipeline is based on
+              an efficient multi-stage ``triage-then-cluster-then-pursuit''
+              approach that initially extracts only clean, high-quality
+              waveforms from the electrophysiological time series by
+              temporarily skipping noisy or ``collided'' events (representing
+              two neurons firing synchronously). This is accomplished by
+              developing a neural network detection and denoising method
+              followed by efficient outlier triaging. The denoised spike
+              waveforms are then used to infer the set of spike templates
+              through nonparametric Bayesian clustering. We use a
+              divide-and-conquer strategy to parallelize this clustering step.
+              Finally, we recover collided waveforms with matching-pursuit
+              deconvolution techniques, and perform further split-and-merge
+              steps to estimate additional templates from the pool of recovered
+              waveforms. We apply the new pipeline to data recorded in the
+              primate retina, where high firing rates and highly-overlapping
+              axonal units provide a challenging testbed for the deconvolution
+              approach; in addition, the well-defined mosaic structure of
+              receptive fields in this preparation provides a useful quality
+              check on any spike sorting pipeline. We show that our pipeline
+              improves on the state-of-the-art in spike sorting (and
+              outperforms manual sorting) on both real and semi-simulated MEA
+              data with > 500 electrodes; open source code can be found at
+              https://github.com/paninski-lab/yass.",
+  journal  = "bioRxiv",
+  pages    = "2020.03.18.997924",
+  month    =  mar,
+  year     =  2020,
+  language = "en"
+}
