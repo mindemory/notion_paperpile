@@ -48,9 +48,9 @@ bibdata = parser.parse_file("paperpile_references.bib")
 
 count = 0
 for bib_id in bibdata.entries:
-    
+
     b = bibdata.entries[bib_id]
-    
+
     paper_title = bibdata.entries[bib_id].fields['title']
     first_author = bib_id[:-3]
     author_list = bibdata.entries[bib_id].persons['author']
@@ -61,9 +61,11 @@ for bib_id in bibdata.entries:
         journal_name = bibdata.entries[bib_id].fields['publisher']
     elif 'URLs' in bibdata.entries[bib_id].fields:
         journal_name = bibdata.entries[bib_id].fields['URLs']
-    
+    elif 'archivePrefix' in bibdata.entries[bib_id].fields:
+        journal_name = bibdata.entries[bib_id].fields['archivePrefix']
+
     year_pub = bibdata.entries[bib_id].fields['year']
-    
+
     if len(author_list) > 2:
         auth_year = first_author[:-4] + ' et. al.,' + year_pub
     elif len(author_list) == 1:
@@ -72,8 +74,8 @@ for bib_id in bibdata.entries:
         prim_auth = str(author_list[0]).split(", ")[0]
         sec_auth = str(author_list[1]).split(", ")[0]
         auth_year = prim_auth + " & " + sec_auth + ", " + year_pub
-    
-    
+
+
     if str(paper_title) not in existing_titles.values():
         count += 1
         na.createPage(database_id, headers_create, auth_year, str(journal_name), paper_title)
