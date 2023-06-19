@@ -511,51 +511,28 @@
   language = "en"
 }
 
-@ARTICLE{Prince2022-am,
-  title    = "Improving the accuracy of single-trial {fMRI} response estimates
-              using {GLMsingle}",
-  author   = "Prince, Jacob S and Charest, Ian and Kurzawski, Jan W and Pyles,
-              John A and Tarr, Michael J and Kay, Kendrick N",
-  abstract = "Advances in artificial intelligence have inspired a paradigm
-              shift in human neuroscience, yielding large-scale functional
-              magnetic resonance imaging (fMRI) datasets that provide
-              high-resolution brain responses to thousands of naturalistic
-              visual stimuli. Because such experiments necessarily involve
-              brief stimulus durations and few repetitions of each stimulus,
-              achieving sufficient signal-to-noise ratio can be a major
-              challenge. We address this challenge by introducing GLMsingle, a
-              scalable, user-friendly toolbox available in MATLAB and Python
-              that enables accurate estimation of single-trial fMRI responses
-              (glmsingle.org). Requiring only fMRI time-series data and a
-              design matrix as inputs, GLMsingle integrates three techniques
-              for improving the accuracy of trial-wise general linear model
-              (GLM) beta estimates. First, for each voxel, a custom hemodynamic
-              response function (HRF) is identified from a library of candidate
-              functions. Second, cross-validation is used to derive a set of
-              noise regressors from voxels unrelated to the experiment. Third,
-              to improve the stability of beta estimates for closely spaced
-              trials, betas are regularized on a voxel-wise basis using ridge
-              regression. Applying GLMsingle to the Natural Scenes Dataset and
-              BOLD5000, we find that GLMsingle substantially improves the
-              reliability of beta estimates across visually-responsive cortex
-              in all subjects. Comparable improvements in reliability are also
-              observed in a smaller-scale auditory dataset from the
-              StudyForrest experiment. These improvements translate into
-              tangible benefits for higher-level analyses relevant to systems
-              and cognitive neuroscience. We demonstrate that GLMsingle: (i)
-              helps decorrelate response estimates between trials nearby in
-              time; (ii) enhances representational similarity between subjects
-              within and across datasets; and (iii) boosts one-versus-many
-              decoding of visual stimuli. GLMsingle is a publicly available
-              tool that can significantly improve the quality of past, present,
-              and future neuroimaging datasets sampling brain activity across
-              many experimental conditions.",
-  journal  = "Elife",
-  volume   =  11,
-  month    =  nov,
-  year     =  2022,
-  keywords = "GLM; MVPA; RSA; denoising; fMRI pre-processing; human;
-              large-scale datasets; neuroscience; voxel reliability",
+@ARTICLE{Kay2023-cm,
+  title    = "Tasks and their role in visual neuroscience",
+  author   = "Kay, Kendrick and Bonnen, Kathryn and Denison, Rachel N and
+              Arcaro, Mike J and Barack, David L",
+  abstract = "Vision is widely used as a model system to gain insights into how
+              sensory inputs are processed and interpreted by the brain.
+              Historically, careful quantification and control of visual
+              stimuli have served as the backbone of visual neuroscience. There
+              has been less emphasis, however, on how an observer's task
+              influences the processing of sensory inputs. Motivated by diverse
+              observations of task-dependent activity in the visual system, we
+              propose a framework for thinking about tasks, their role in
+              sensory processing, and how we might formally incorporate tasks
+              into our models of vision.",
+  journal  = "Neuron",
+  volume   =  111,
+  number   =  11,
+  pages    = "1697--1713",
+  month    =  jun,
+  year     =  2023,
+  keywords = "behavior; brain; information processing; modeling; task; visual
+              cortex",
   language = "en"
 }
 
@@ -15696,4 +15673,52 @@
 @MISC{noauthor_undated-co,
   title        = "{Heeger-VisNeurosci1992a.pdf}",
   howpublished = "\url{https://www.cns.nyu.edu/heegerlab/content/publications/Heeger-VisNeurosci1992a.pdf}"
+}
+
+@ARTICLE{Prince2022-am,
+  title    = "Improving the accuracy of single-trial {fMRI} response estimates
+              using {GLMsingle}",
+  author   = "Prince, Jacob S and Charest, Ian and Kurzawski, Jan W and Pyles,
+              John A and Tarr, Michael J and Kay, Kendrick N",
+  abstract = "Advances in artificial intelligence have inspired a paradigm
+              shift in human neuroscience, yielding large-scale functional
+              magnetic resonance imaging (fMRI) datasets that provide
+              high-resolution brain responses to thousands of naturalistic
+              visual stimuli. Because such experiments necessarily involve
+              brief stimulus durations and few repetitions of each stimulus,
+              achieving sufficient signal-to-noise ratio can be a major
+              challenge. We address this challenge by introducing GLMsingle, a
+              scalable, user-friendly toolbox available in MATLAB and Python
+              that enables accurate estimation of single-trial fMRI responses
+              (glmsingle.org). Requiring only fMRI time-series data and a
+              design matrix as inputs, GLMsingle integrates three techniques
+              for improving the accuracy of trial-wise general linear model
+              (GLM) beta estimates. First, for each voxel, a custom hemodynamic
+              response function (HRF) is identified from a library of candidate
+              functions. Second, cross-validation is used to derive a set of
+              noise regressors from voxels unrelated to the experiment. Third,
+              to improve the stability of beta estimates for closely spaced
+              trials, betas are regularized on a voxel-wise basis using ridge
+              regression. Applying GLMsingle to the Natural Scenes Dataset and
+              BOLD5000, we find that GLMsingle substantially improves the
+              reliability of beta estimates across visually-responsive cortex
+              in all subjects. Comparable improvements in reliability are also
+              observed in a smaller-scale auditory dataset from the
+              StudyForrest experiment. These improvements translate into
+              tangible benefits for higher-level analyses relevant to systems
+              and cognitive neuroscience. We demonstrate that GLMsingle: (i)
+              helps decorrelate response estimates between trials nearby in
+              time; (ii) enhances representational similarity between subjects
+              within and across datasets; and (iii) boosts one-versus-many
+              decoding of visual stimuli. GLMsingle is a publicly available
+              tool that can significantly improve the quality of past, present,
+              and future neuroimaging datasets sampling brain activity across
+              many experimental conditions.",
+  journal  = "Elife",
+  volume   =  11,
+  month    =  nov,
+  year     =  2022,
+  keywords = "GLM; MVPA; RSA; denoising; fMRI pre-processing; human;
+              large-scale datasets; neuroscience; voxel reliability",
+  language = "en"
 }
