@@ -29,6 +29,11 @@
                 "type": "multi_select",
                 "multi_select": []
             },
+            "Key Takeaway": {
+                "id": "V%40Fy",
+                "type": "rich_text",
+                "rich_text": []
+            },
             "Summary": {
                 "id": "V%40Fy",
                 "type": "rich_text",
