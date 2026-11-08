@@ -1,0 +1,1423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Paperpile Library Map</title>
+<meta name="description" content="An interactive map of a Paperpile library: papers grouped by topic and authors by who they write with.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+/* Layout: a header strip of controls, then the map stage beside a reading panel; stacked on phones. */
+:root {
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --raised: #ffffff;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --hairline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --wash: rgba(11, 11, 11, 0.045);
+  --accent: #eb6834;
+  --accent-ink: #b8431a;
+  --link: rgba(82, 81, 78, 0.17);
+  --link-faint: rgba(82, 81, 78, 0.05);
+  --link-hi: rgba(235, 104, 52, 0.8);
+  --dim: rgba(137, 135, 129, 0.24);
+  --shadow: 0 1px 2px rgba(11, 11, 11, 0.06), 0 8px 24px rgba(11, 11, 11, 0.08);
+  /* publication-year ramp, oldest -> newest (one hue, light -> dark) */
+  --ramp: #86b6ef, #6da7ec, #5598e7, #3987e5, #2a78d6, #256abf, #1c5cab, #184f95, #104281, #0d366b;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: "Newsreader", Georgia, "Times New Roman", serif;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --raised: #222220;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --hairline: #2c2c2a;
+    --baseline: #383835;
+    --wash: rgba(255, 255, 255, 0.06);
+    --accent: #d95926;
+    --accent-ink: #ef8a5f;
+    --link: rgba(195, 194, 183, 0.15);
+    --link-faint: rgba(195, 194, 183, 0.04);
+    --link-hi: rgba(217, 89, 38, 0.85);
+    --dim: rgba(137, 135, 129, 0.22);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+    --ramp: #184f95, #1c5cab, #256abf, #2a78d6, #3987e5, #5598e7, #6da7ec, #86b6ef, #9ec5f4, #b7d3f6, #cde2fb;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --raised: #222220;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --hairline: #2c2c2a;
+  --baseline: #383835;
+  --wash: rgba(255, 255, 255, 0.06);
+  --accent: #d95926;
+  --accent-ink: #ef8a5f;
+  --link: rgba(195, 194, 183, 0.15);
+  --link-faint: rgba(195, 194, 183, 0.04);
+  --link-hi: rgba(217, 89, 38, 0.85);
+  --dim: rgba(137, 135, 129, 0.22);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.45);
+  --ramp: #184f95, #1c5cab, #256abf, #2a78d6, #3987e5, #5598e7, #6da7ec, #86b6ef, #9ec5f4, #b7d3f6, #cde2fb;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.45 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.app {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding-block: 14px 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- header */
+.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+.brand { min-width: 0; }
+.brand h1 {
+  margin: 0;
+  font: 500 26px/1.1 var(--font-read);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.brand p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.seg button {
+  border: 0;
+  background: transparent;
+  padding: 5px 11px;
+  border-radius: 6px;
+  color: var(--ink-2);
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.seg button:hover { background: var(--wash); color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.field { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 13px; }
+.field select {
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  border-radius: 7px;
+  padding: 4px 6px;
+}
+.search { position: relative; }
+.search input {
+  width: min(300px, 78vw);
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13.5px;
+}
+.search input::placeholder { color: var(--muted); }
+.search ul {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  width: min(420px, 92vw);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  max-height: 60vh;
+  overflow: auto;
+}
+.search li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.search li[aria-selected="true"], .search li:hover { background: var(--wash); }
+.search li .kind { grid-row: span 2; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding-top: 2px; }
+.search li .main { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search li .sub { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search li.empty { display: block; color: var(--muted); cursor: default; }
+
+/* ---------- main */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 12px; min-height: 0; }
+.stage, .panel {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  min-height: 0;
+  min-width: 0;
+}
+.stage { position: relative; overflow: hidden; }
+#graph { position: absolute; inset: 0; }
+#graph canvas { display: block; }
+.overlay { position: absolute; z-index: 5; }
+.focus-chip {
+  top: 10px; left: 10px; right: 120px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  pointer-events: none;
+}
+.chip {
+  pointer-events: auto;
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 100%;
+  padding: 4px 6px 4px 10px;
+  border-radius: 999px;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+}
+.chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.chip b { font-weight: 600; color: var(--accent-ink); }
+.chip button {
+  border: 0; background: var(--wash); border-radius: 999px;
+  width: 22px; height: 22px; line-height: 22px; padding: 0; color: var(--ink-2);
+}
+.stage-tools { top: 10px; right: 10px; display: flex; gap: 6px; }
+.tool {
+  border: 1px solid var(--hairline);
+  background: var(--raised);
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  box-shadow: var(--shadow);
+}
+.tool:hover { color: var(--ink); }
+.hint { align-self: center; color: var(--muted); font-size: 12px; }
+.legend {
+  left: 10px; bottom: 10px;
+  padding: 8px 10px 6px;
+  background: var(--raised);
+  background: color-mix(in srgb, var(--raised) 88%, transparent);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(6px);
+}
+.legend .cap { display: flex; justify-content: space-between; gap: 12px; font-size: 11.5px; color: var(--ink-2); margin-bottom: 4px; }
+.legend .cap span:last-child { color: var(--muted); }
+.legend svg { display: block; overflow: visible; touch-action: none; }
+.legend text { fill: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.notice {
+  inset: 0; display: grid; place-items: center; text-align: center;
+  padding: 24px; color: var(--ink-2); background: var(--surface);
+}
+.notice p { max-width: 42ch; margin: 0; }
+
+/* list view */
+.listview { position: absolute; inset: 0; overflow: auto; }
+.listview table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.listview th {
+  position: sticky; top: 0; z-index: 1;
+  text-align: left; font-weight: 500; color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+  padding: 0;
+}
+.listview th button { width: 100%; text-align: left; border: 0; background: none; padding: 9px 10px; color: inherit; font-weight: 500; }
+.listview th button[aria-sort]::after { content: " \2193"; }
+.listview th button[aria-sort="ascending"]::after { content: " \2191"; }
+.listview td { padding: 7px 10px; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+.listview td.num { font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+.listview tr { cursor: pointer; }
+.listview tbody tr:hover { background: var(--wash); }
+.listview tr.on { background: var(--wash); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.listview .t { font-family: var(--font-read); font-size: 14.5px; line-height: 1.3; }
+.listview .s { color: var(--muted); font-size: 12px; }
+
+/* ---------- panel */
+.panel { overflow: auto; padding: 18px 18px 22px; display: flex; flex-direction: column; gap: 18px; }
+.panel h2 { margin: 0; font: 500 22px/1.2 var(--font-read); text-wrap: balance; }
+.panel h3 {
+  margin: 0 0 8px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+}
+.panel p { margin: 0; }
+.eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent-ink); }
+.lede { color: var(--ink-2); max-width: 65ch; }
+.back { align-self: flex-start; border: 0; background: none; padding: 0; color: var(--ink-2); font-size: 13px; }
+.back:hover { color: var(--ink); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stat { padding: 10px 12px; border-radius: 8px; background: var(--wash); }
+.stat strong { display: block; font-size: 20px; font-weight: 500; line-height: 1.1; }
+.stat span { color: var(--muted); font-size: 12px; }
+.rows { display: flex; flex-direction: column; gap: 2px; }
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  width: 100%;
+  border: 0; background: none; text-align: left;
+  padding: 6px 8px; margin: 0 -8px; width: calc(100% + 16px);
+  border-radius: 6px;
+}
+.row:hover, .row.on { background: var(--wash); }
+.row .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .n { color: var(--ink-2); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.row .bar { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--hairline); overflow: hidden; }
+.row .bar i { display: block; height: 100%; border-radius: 2px; background: var(--baseline); }
+.row.on .bar i { background: var(--accent); }
+.row .t { grid-column: 1 / -1; font-family: var(--font-read); font-size: 14.5px; line-height: 1.3; white-space: normal; }
+.row .s { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill {
+  border: 1px solid var(--hairline);
+  background: var(--raised);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12.5px;
+  color: var(--ink);
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+button.pill:hover { border-color: var(--baseline); background: var(--wash); }
+.pill small { color: var(--muted); font-size: 11.5px; margin-left: 4px; font-variant-numeric: tabular-nums; }
+.meta { color: var(--ink-2); }
+.terms { color: var(--ink-2); font-size: 13px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.action {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--hairline); background: var(--raised);
+  border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--ink); text-decoration: none;
+}
+.action:hover { border-color: var(--baseline); }
+.paper-title { font: 500 21px/1.25 var(--font-read); margin: 0; text-wrap: pretty; }
+.foot { margin-top: auto; color: var(--muted); font-size: 12px; }
+
+/* ---------- tooltip */
+.tip {
+  position: fixed; z-index: 50; pointer-events: none;
+  max-width: 320px;
+  padding: 8px 10px;
+  background: var(--raised);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-size: 12.5px;
+}
+.tip strong { display: block; font-size: 13px; font-weight: 600; }
+.tip .t { font-family: var(--font-read); font-size: 14px; line-height: 1.3; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.tip .s { color: var(--muted); margin-top: 3px; }
+
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  .app { height: auto; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 64vh; min-height: 380px; }
+  .panel { overflow: visible; }
+  .top { align-items: start; }
+  .focus-chip { right: 10px; top: 52px; }
+  .search ul { left: 0; right: auto; width: min(420px, calc(100vw - 32px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>Library Map</h1>
+      <p id="summary"></p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="What to map">
+        <button type="button" id="view-papers" data-view="papers" aria-pressed="true">Papers by topic</button>
+        <button type="button" id="view-authors" data-view="authors" aria-pressed="false">Co-authors</button>
+      </div>
+      <div class="seg" role="group" aria-label="Display">
+        <button type="button" id="display-2d" data-display="2d" aria-pressed="true">2D</button>
+        <button type="button" id="display-3d" data-display="3d" aria-pressed="false">3D</button>
+        <button type="button" id="display-list" data-display="list" aria-pressed="false">List</button>
+      </div>
+      <label class="field" id="min-field" hidden>Authors with
+        <select id="min-papers" aria-label="Minimum papers per author"></select>
+        papers
+      </label>
+      <div class="search">
+        <input id="search" type="search" placeholder="Search authors or papers" autocomplete="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-controls="search-list" aria-autocomplete="list">
+        <ul id="search-list" role="listbox" hidden></ul>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="stage" id="stage" aria-label="Map">
+      <div id="graph" role="img" aria-label="Network map of the library"></div>
+      <div class="listview" id="listview" hidden></div>
+      <div class="overlay focus-chip" id="focus-chip"></div>
+      <div class="overlay stage-tools" id="stage-tools">
+        <span class="hint" id="hint-3d" hidden>Drag to rotate, scroll to zoom</span>
+        <button type="button" class="tool" id="fit">Fit to view</button>
+      </div>
+      <div class="overlay legend" id="legend"></div>
+      <div class="overlay notice" id="notice" hidden><p id="notice-text"></p></div>
+    </section>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </main>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script id="library-data" type="application/json">/*__LIBRARY_DATA__*/</script>
+<script src="https://cdn.jsdelivr.net/npm/force-graph@1.51.5/dist/force-graph.min.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const LIB_3D = 'https://cdn.jsdelivr.net/npm/3d-force-graph@1.80.1/dist/3d-force-graph.min.js';
+  const DATA = JSON.parse(document.getElementById('library-data').textContent);
+  const papers = DATA.papers;
+  const people = DATA.people;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const ms = (t) => (reduceMotion ? 0 : t);
+
+  // ------------------------------------------------------------------ helpers
+  const $ = (id) => document.getElementById(id);
+  function h(tag, attrs, ...kids) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v === undefined || v === null || v === false) continue;
+      if (k === 'class') node.className = v;
+      else if (k === 'text') node.textContent = v;
+      else if (k === 'style') node.setAttribute('style', v);
+      else if (k.startsWith('on')) node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid !== null && kid !== undefined && kid !== false) node.append(kid);
+    return node;
+  }
+  const fmt = (n) => Number(n).toLocaleString('en-US');
+  const plural = (n, one, many) => `${fmt(n)} ${n === 1 ? one : many || one + 's'}`;
+  const fold = (s) => (s || '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const endId = (end) => (typeof end === 'object' ? end.id : end);
+
+  // ------------------------------------------------------------------ indexes
+  const paperNbrs = papers.map(() => []);
+  for (const [a, b, w] of DATA.paperLinks) { paperNbrs[a].push([b, w]); paperNbrs[b].push([a, w]); }
+  paperNbrs.forEach((list) => list.sort((x, y) => y[1] - x[1]));
+
+  const coauthors = people.map(() => new Map());
+  for (const p of papers) {
+    for (const a of p.authors) for (const b of p.authors) {
+      if (a !== b) coauthors[a].set(b, (coauthors[a].get(b) || 0) + 1);
+    }
+  }
+  function sharedAuthorPapers(pi) {
+    const counts = new Map();
+    for (const a of papers[pi].authors) for (const other of people[a].papers) {
+      if (other !== pi) counts.set(other, (counts.get(other) || 0) + 1);
+    }
+    return [...counts].sort((x, y) => y[1] - x[1] || (papers[y[0]].year || 0) - (papers[x[0]].year || 0));
+  }
+  const peopleByCount = people.map((_, i) => i).sort((a, b) => people[b].papers.length - people[a].papers.length || people[a].name.localeCompare(people[b].name));
+
+  const years = papers.map((p) => p.year).filter(Boolean).sort((a, b) => a - b);
+  const YEAR_HI = years[years.length - 1] || new Date().getFullYear();
+  const YEAR_LO = Math.min(YEAR_HI - 5, years[Math.floor(years.length * 0.05)] || years[0] || YEAR_HI - 20);
+
+  const MIN_CHOICES = [2, 3, 4, 5, 6, 8, 10].filter((n) => n >= (DATA.meta.minAuthorPapers || 2));
+  const views = {
+    papers: { clusters: DATA.paperClusters, labelMin: 10, noun: 'paper' },
+    authors: { clusters: DATA.authorClusters, labelMin: 6, noun: 'author' },
+  };
+
+  // ------------------------------------------------------------------ state
+  const state = {
+    view: 'papers',
+    display: '2d',
+    minPapers: MIN_CHOICES.includes(3) ? 3 : MIN_CHOICES[0],
+    focus: null,      // {type: 'paper'|'person'|'cluster'|'year', id}
+    transient: null,  // same shape; hover previews that don't stick
+    hover: null,      // node id under the pointer
+  };
+  const positions = {};  // cached layouts per view/display so switching back is stable
+  let graph = null;
+  let graphKind = null;
+  let nodes = [];
+  let links = [];
+  let nodeById = new Map();
+  let userMoved = false;  // once the reader pans or zooms, stop re-framing the view for them
+
+  // ------------------------------------------------------------------ theme
+  let colors = {};
+  let yearLut = new Map();
+  function hexToRgb(hex) {
+    const v = parseInt(hex.replace('#', ''), 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+  function readTheme() {
+    const css = getComputedStyle(document.documentElement);
+    const get = (name) => css.getPropertyValue(name).trim();
+    colors = {
+      surface: get('--surface'), ink: get('--ink'), ink2: get('--ink-2'), muted: get('--muted'),
+      accent: get('--accent'), link: get('--link'), linkFaint: get('--link-faint'), linkHi: get('--link-hi'),
+      dim: get('--dim'), hairline: get('--hairline'),
+      font: get('--font-ui') || 'system-ui, sans-serif',
+    };
+    const stops = get('--ramp').split(',').map((s) => hexToRgb(s.trim()));
+    yearLut = new Map();
+    for (let y = YEAR_LO; y <= YEAR_HI; y++) {
+      const t = (y - YEAR_LO) / Math.max(1, YEAR_HI - YEAR_LO);
+      const pos = t * (stops.length - 1);
+      const i = Math.min(stops.length - 2, Math.floor(pos));
+      const f = pos - i;
+      const rgb = stops[i].map((c, k) => Math.round(c + (stops[i + 1][k] - c) * f));
+      yearLut.set(y, `rgb(${rgb.join(',')})`);
+    }
+  }
+  const yearColor = (y) => (y ? yearLut.get(clamp(y, YEAR_LO, YEAR_HI)) : colors.muted);
+
+  // ------------------------------------------------------------------ graph data
+  function radius(node) {
+    if (state.view === 'papers') return 4.6;
+    return 2.6 + 1.9 * Math.sqrt(people[node.id].papers.length);
+  }
+  function buildData() {
+    if (state.view === 'papers') {
+      nodes = papers.map((p, i) => ({ id: i, year: p.year, cluster: p.cluster }));
+      links = DATA.paperLinks.map(([a, b, w]) => ({ source: a, target: b, w }));
+    } else {
+      const keep = new Set(people.map((_, i) => i).filter((i) => people[i].papers.length >= state.minPapers));
+      nodes = [...keep].map((i) => ({ id: i, year: people[i].year, cluster: people[i].cluster }));
+      links = DATA.authorLinks
+        .filter(([a, b]) => keep.has(a) && keep.has(b))
+        .map(([a, b, n, w]) => ({ source: a, target: b, n, w }));
+    }
+    const cached = positions[layoutKey()];
+    if (cached) for (const n of nodes) { const p = cached.get(n.id); if (p) Object.assign(n, p); }
+    nodeById = new Map(nodes.map((n) => [n.id, n]));
+    seedLayout();
+  }
+  const layoutKey = () => `${state.view}-${state.display}`;
+  function rememberLayout() {
+    if (!nodes.length || nodes[0].x === undefined) return;
+    positions[layoutKey()] = new Map(nodes.map((n) => [n.id, { x: n.x, y: n.y, z: n.z }]));
+  }
+
+  // which nodes a focus lights up, in the current view
+  function activeSet(f) {
+    if (!f) return null;
+    const out = new Set();
+    if (state.view === 'papers') {
+      if (f.type === 'paper') { out.add(f.id); paperNbrs[f.id].forEach(([j]) => out.add(j)); }
+      else if (f.type === 'person') people[f.id].papers.forEach((i) => out.add(i));
+      else if (f.type === 'cluster') papers.forEach((p, i) => p.cluster === f.id && out.add(i));
+      else if (f.type === 'year') papers.forEach((p, i) => yearBucket(p.year) === f.id && out.add(i));
+    } else {
+      if (f.type === 'person') { out.add(f.id); coauthors[f.id].forEach((_, j) => out.add(j)); }
+      else if (f.type === 'paper') papers[f.id].authors.forEach((a) => out.add(a));
+      else if (f.type === 'cluster') nodes.forEach((n) => n.cluster === f.id && out.add(n.id));
+      else if (f.type === 'year') nodes.forEach((n) => yearBucket(n.year) === f.id && out.add(n.id));
+    }
+    return out;
+  }
+  function primaryId(f) {
+    if (!f) return null;
+    if (state.view === 'papers' && f.type === 'paper') return f.id;
+    if (state.view === 'authors' && f.type === 'person') return f.id;
+    return null;
+  }
+  const yearBucket = (y) => (y ? Math.max(y, YEAR_LO) : null);
+
+  let lit = null;
+  let primary = null;
+  function recomputeHighlight() {
+    const f = state.transient || state.focus;
+    lit = activeSet(f);
+    primary = primaryId(f);
+  }
+  function nodeFill(node) {
+    if (node.id === primary) return colors.accent;
+    if (lit && !lit.has(node.id)) return colors.dim;
+    return yearColor(node.year);
+  }
+  function linkStyle(link) {
+    const a = endId(link.source), b = endId(link.target);
+    const hov = state.hover;
+    if (primary !== null) {
+      if (a === primary || b === primary) return [colors.linkHi, 1.6];
+      return [colors.linkFaint, 0.5];
+    }
+    if (lit) return lit.has(a) && lit.has(b) ? [colors.link, 0.9] : [colors.linkFaint, 0.5];
+    if (hov !== null && (a === hov || b === hov)) return [colors.linkHi, 1.4];
+    const ca = typeof link.source === 'object' ? link.source.cluster : null;
+    const cb = typeof link.target === 'object' ? link.target.cluster : null;
+    return ca !== null && ca === cb && ca >= 0 ? [colors.link, 0.6] : [colors.linkFaint, 0.5];
+  }
+
+  // ------------------------------------------------------------------ labels
+  function nodeName(id) {
+    return state.view === 'papers' ? papers[id].label : people[id].last;
+  }
+  function wantsLabel(node, k) {
+    if (node.id === primary) return true;
+    if (primary !== null && lit && lit.has(node.id)) return k > 0.9;
+    if (state.view === 'papers') return k > 3.2 && (!lit || lit.has(node.id));
+    const n = people[node.id].papers.length;
+    if (lit && !lit.has(node.id)) return false;
+    return n >= 9 ? k > 0.7 : n >= 5 ? k > 1.6 : k > 3;
+  }
+  function drawText(ctx, text, x, y, size, k, weight, fill, align) {
+    ctx.font = `${weight} ${size / k}px ${colors.font}`;
+    ctx.textAlign = align || 'center';
+    ctx.textBaseline = 'top';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 3.5 / k;
+    ctx.strokeStyle = colors.surface;
+    ctx.strokeText(text, x, y);
+    ctx.fillStyle = fill;
+    ctx.fillText(text, x, y);
+  }
+  function drawClusterLabels(ctx, k) {
+    const meta = views[state.view];
+    const [w, hgt] = size();
+    const tl = graph && graph.screen2GraphCoords ? graph.screen2GraphCoords(0, 0) : null;
+    const br = graph && graph.screen2GraphCoords ? graph.screen2GraphCoords(w, hgt) : null;
+    const sums = new Map();
+    for (const n of nodes) {
+      if (n.cluster < 0 || n.x === undefined) continue;
+      const s = sums.get(n.cluster) || { x: 0, y: 0, c: 0 };
+      s.x += n.x; s.y += n.y; s.c += 1;
+      sums.set(n.cluster, s);
+    }
+    const f = state.transient || state.focus;
+    const placed = [];
+    const narrow = w < 560;  // phones: fewer, smaller labels so the dots stay visible
+    const order = [...sums.keys()].sort((a, b) => a - b);  // biggest clusters claim their spot first
+    for (const cid of order) {
+      const s = sums.get(cid);
+      if (s.c < meta.labelMin) continue;
+      if (narrow && placed.length >= 6 && !(f && f.type === 'cluster' && f.id === cid)) continue;
+      const label = meta.clusters[cid] && meta.clusters[cid].label;
+      if (!label) continue;
+      const on = f && f.type === 'cluster' && f.id === cid;
+      const off = f && !on;
+      const px = (on ? 13.5 : 12.5) - (narrow ? 1.5 : 0);
+      let x = s.x / s.c;
+      let y = s.y / s.c - 7 / k;
+      ctx.font = `600 ${px / k}px ${colors.font}`;
+      const half = ctx.measureText(label).width / 2 + 4 / k;
+      const tall = 17 / k;
+      if (tl && br) {
+        if (br.x - tl.x > 2 * half + 8 / k) x = clamp(x, tl.x + half + 4 / k, br.x - half - 4 / k);
+        y = clamp(y, tl.y + 8 / k, br.y - 24 / k);
+      }
+      // nudge up or down out of the way of labels already drawn; skip if there's no room
+      const spot = [0, 1, -1, 2, -2].map((d) => y + d * tall).find((yy) =>
+        !placed.some((q) => Math.abs(q.x - x) < q.half + half && Math.abs(q.y - yy) < tall));
+      if (spot === undefined && !on) continue;
+      y = spot === undefined ? y : spot;
+      placed.push({ x, y, half });
+      drawText(ctx, label, x, y, px, k, 600, off ? colors.muted : colors.ink, 'center');
+    }
+  }
+
+  // ------------------------------------------------------------------ forces
+  function gravity(strength) {
+    let all = [];
+    const force = (alpha) => {
+      for (const n of all) {
+        n.vx -= n.x * strength * alpha;
+        n.vy -= n.y * strength * alpha;
+        if (n.z !== undefined) n.vz -= n.z * strength * alpha;
+      }
+    };
+    force.initialize = (ns) => { all = ns; };
+    return force;
+  }
+  // pulls each node towards the middle of its own cluster, so topics read as islands
+  function cohesion(strength) {
+    let all = [];
+    const force = (alpha) => {
+      const acc = new Map();
+      for (const n of all) {
+        if (n.cluster < 0) continue;
+        const a = acc.get(n.cluster) || { x: 0, y: 0, z: 0, c: 0 };
+        a.x += n.x; a.y += n.y; a.z += n.z || 0; a.c += 1;
+        acc.set(n.cluster, a);
+      }
+      const k = strength * alpha;
+      for (const n of all) {
+        if (n.cluster < 0) continue;
+        const a = acc.get(n.cluster);
+        n.vx += (a.x / a.c - n.x) * k;
+        n.vy += (a.y / a.c - n.y) * k;
+        if (n.z !== undefined) n.vz += (a.z / a.c - n.z) * k;
+      }
+    };
+    force.initialize = (ns) => { all = ns; };
+    return force;
+  }
+  const sameCluster = (l) => l.source.cluster >= 0 && l.source.cluster === l.target.cluster;
+  function tuneForces(g) {
+    if (state.view === 'papers') {
+      g.d3Force('charge').strength(-36).distanceMax(380);
+      g.d3Force('link')
+        .distance((l) => (sameCluster(l) ? 16 + 26 * (1 - Math.min(1, l.w * 2)) : 70))
+        .strength((l) => (sameCluster(l) ? 0.25 + 0.5 * Math.min(1, l.w * 2) : 0.012));
+      g.d3Force('gravity', gravity(0.02));
+      g.d3Force('cohesion', cohesion(0.07));
+    } else {
+      g.d3Force('charge').strength(-55).distanceMax(420);
+      g.d3Force('link')
+        .distance((l) => (sameCluster(l) ? 22 : 80))
+        .strength((l) => (sameCluster(l) ? Math.min(0.9, 0.2 + 1.2 * l.w) : 0.02));
+      g.d3Force('gravity', gravity(0.03));
+      g.d3Force('cohesion', cohesion(0.05));
+    }
+  }
+  // deterministic starting layout: cluster centres on a sunflower spiral, members scattered around them
+  function hash01(n) {
+    let x = (n + 1) * 2654435761 % 4294967296;
+    x ^= x >>> 15; x = Math.imul(x, 2246822519) >>> 0; x ^= x >>> 13;
+    return (x >>> 0) / 4294967296;
+  }
+  function seedLayout() {
+    if (positions[layoutKey()]) return;
+    const sizes = new Map();
+    nodes.forEach((n) => sizes.set(n.cluster, (sizes.get(n.cluster) || 0) + 1));
+    const spacing = state.view === 'papers' ? 95 : 85;
+    nodes.forEach((n) => {
+      const c = n.cluster >= 0 ? n.cluster : views[state.view].clusters.length + 2;
+      const r = spacing * Math.sqrt(c + 0.6);
+      const theta = c * 2.39996;
+      const spread = 5 * Math.sqrt(sizes.get(n.cluster) || 1);
+      const a = 2 * Math.PI * hash01(n.id * 3 + 1);
+      const d = spread * Math.sqrt(hash01(n.id * 5 + 2));
+      n.x = r * Math.cos(theta) + d * Math.cos(a);
+      n.y = r * Math.sin(theta) + d * Math.sin(a);
+      if (state.display === '3d') n.z = (hash01(n.id * 7 + 3) - 0.5) * spacing * 1.5;
+    });
+  }
+
+  // ------------------------------------------------------------------ 2D
+  function mount2d() {
+    const el = $('graph');
+    const g = ForceGraph()(el)
+      .backgroundColor('rgba(0,0,0,0)')
+      .nodeId('id')
+      .nodeLabel(() => '')
+      .nodeCanvasObjectMode(() => 'replace')
+      .nodeCanvasObject((node, ctx, k) => {
+        const r = radius(node) * (lit && primary === null && lit.has(node.id) ? 1.3 : 1);
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
+        ctx.fillStyle = nodeFill(node);
+        ctx.fill();
+        ctx.lineWidth = 1.2 / k;
+        ctx.strokeStyle = colors.surface;
+        ctx.stroke();
+        if (node.id === primary || node.id === state.hover) {
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, r + 2.5 / k, 0, 2 * Math.PI);
+          ctx.lineWidth = 2 / k;
+          ctx.strokeStyle = node.id === primary ? colors.accent : colors.ink2;
+          ctx.stroke();
+        }
+        if (wantsLabel(node, k)) {
+          drawText(ctx, nodeName(node.id), node.x, node.y + r + 2.5 / k, 11, k, node.id === primary ? 600 : 500,
+            node.id === primary ? colors.ink : colors.ink2);
+        }
+      })
+      .nodePointerAreaPaint((node, color, ctx, k) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, Math.max(radius(node) + 1, 12 / k), 0, 2 * Math.PI);
+        ctx.fill();
+      })
+      .linkColor((l) => linkStyle(l)[0])
+      .linkWidth((l) => linkStyle(l)[1])
+      .onRenderFramePost((ctx, k) => drawClusterLabels(ctx, k))
+      .onNodeHover((node) => onHover(node))
+      .onNodeClick((node) => onNodeClick(node))
+      .onBackgroundClick(() => clearFocus())
+      .onEngineStop(() => { rememberLayout(); settle(); })
+      .warmupTicks(reduceMotion ? 300 : 40)
+      .cooldownTicks(reduceMotion ? 0 : 400)
+      .cooldownTime(12000);
+    return g;
+  }
+  function redraw() {
+    if (!graph) return;
+    if (graphKind === '2d') graph.linkColor(graph.linkColor());
+    else if (graphKind === '3d') { graph.nodeColor(graph.nodeColor()); graph.linkColor(graph.linkColor()); }
+  }
+
+  // ------------------------------------------------------------------ 3D
+  let load3d = null;
+  function ensure3dLibrary() {
+    if (window.ForceGraph3D) return Promise.resolve();
+    if (!load3d) {
+      load3d = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = LIB_3D;
+        s.onload = resolve;
+        s.onerror = () => { load3d = null; reject(new Error('3D library failed to load')); };
+        document.head.append(s);
+      });
+    }
+    return load3d;
+  }
+  function mount3d() {
+    const el = $('graph');
+    const g = ForceGraph3D({ controlType: 'orbit' })(el)
+      .backgroundColor(colors.surface)
+      .showNavInfo(false)
+      .nodeId('id')
+      .nodeLabel(() => '')
+      .nodeRelSize(1)
+      .nodeVal((n) => Math.pow(radius(n), 3))
+      .nodeResolution(10)
+      .nodeOpacity(0.95)
+      .nodeColor((n) => nodeFill(n))
+      .linkColor((l) => linkStyle(l)[0])
+      .linkOpacity(0.9)
+      .onNodeHover((node) => onHover(node))
+      .onNodeClick((node) => onNodeClick(node))
+      .onBackgroundClick(() => clearFocus())
+      .onEngineStop(() => { rememberLayout(); settle(); })
+      .warmupTicks(reduceMotion ? 300 : 40)
+      .cooldownTicks(reduceMotion ? 0 : 400)
+      .cooldownTime(12000);
+    return g;
+  }
+
+  // ------------------------------------------------------------------ mount / switch
+  function unmount() {
+    if (!graph) return;
+    rememberLayout();
+    try { graph.pauseAnimation && graph.pauseAnimation(); } catch (e) { /* already gone */ }
+    try { graph._destructor && graph._destructor(); } catch (e) { /* ignore */ }
+    $('graph').replaceChildren();
+    graph = null;
+    graphKind = null;
+  }
+  function size() {
+    const box = $('stage').getBoundingClientRect();
+    return [Math.max(1, Math.floor(box.width)), Math.max(1, Math.floor(box.height))];
+  }
+  async function render() {
+    hideTip();
+    syncControls();
+    renderLegend();
+    renderFocusChip();
+    const listMode = state.display === 'list';
+    $('listview').hidden = !listMode;
+    $('graph').hidden = listMode;
+    $('fit').hidden = listMode;
+    $('legend').hidden = listMode;
+    $('hint-3d').hidden = state.display !== '3d';
+    if (listMode) {
+      unmount();
+      buildData();
+      recomputeHighlight();
+      renderList();
+      return;
+    }
+    if (state.display === '3d' && !window.ForceGraph3D) {
+      showNotice('Loading the 3D view…');
+      try { await ensure3dLibrary(); } catch (e) {
+        showNotice('The 3D view needs the 3d-force-graph library from cdn.jsdelivr.net, which could not be loaded. The 2D and List views still work.');
+        return;
+      }
+    }
+    if (state.display === '2d' && !window.ForceGraph) {
+      showNotice('The map needs the force-graph library from cdn.jsdelivr.net, which could not be loaded. The List view still works.');
+      return;
+    }
+    hideNotice();
+    unmount();
+    buildData();
+    recomputeHighlight();
+    const cached = !!positions[layoutKey()];
+    userMoved = false;
+    graph = state.display === '3d' ? mount3d() : mount2d();
+    graphKind = state.display;
+    const [w, hgt] = size();
+    graph.width(w).height(hgt);
+    tuneForces(graph);
+    graph.graphData({ nodes, links });
+    const mounted = graph;
+    const again = () => { if (graph === mounted) settle(); };
+    if (cached || reduceMotion) setTimeout(again, 40);
+    else [700, 1800, 3500, 6000].forEach((t) => setTimeout(again, t));
+  }
+  // frame the current selection (or everything) unless the reader has taken over the camera
+  function settle() {
+    if (!graph || userMoved) return;
+    const f = state.focus;
+    if (f && primaryId(f) !== null && nodeById.has(primaryId(f))) moveTo(f);
+    else fit();
+  }
+  function fit(duration) {
+    if (!graph) return;
+    const f = state.focus;
+    const filter = f && f.type === 'cluster' ? (n) => n.cluster === f.id : undefined;
+    const pad = graphKind === '3d' ? 20 : size()[0] < 560 ? 20 : 56;
+    graph.zoomToFit(duration === undefined ? ms(500) : duration, pad, filter);
+  }
+  function showNotice(text) { $('notice-text').textContent = text; $('notice').hidden = false; }
+  function hideNotice() { $('notice').hidden = true; }
+
+  // ------------------------------------------------------------------ focus
+  function setFocus(f, opts) {
+    state.focus = f;
+    state.transient = null;
+    recomputeHighlight();
+    redraw();
+    renderPanel();
+    renderFocusChip();
+    if (state.display === 'list') renderList();
+    if (opts && opts.move === false) return;
+    moveTo(f);
+  }
+  function clearFocus() {
+    if (!state.focus) return;
+    setFocus(null, { move: false });
+  }
+  function moveTo(f) {
+    if (!graph || !f) return;
+    const id = primaryId(f);
+    if (id !== null) {
+      const n = nodeById.get(id);
+      if (!n || n.x === undefined) return;
+      if (graphKind === '2d') {
+        graph.centerAt(n.x, n.y, ms(600));
+        graph.zoom(Math.max(graph.zoom(), 2.4), ms(600));
+      } else {
+        const d = 90;
+        const len = Math.hypot(n.x, n.y, n.z) || 1;
+        const ratio = 1 + d / len;
+        graph.cameraPosition({ x: n.x * ratio, y: n.y * ratio, z: n.z * ratio }, n, ms(900));
+      }
+    } else if (f.type === 'cluster') {
+      graph.zoomToFit(ms(600), 40, (n) => n.cluster === f.id);
+    }
+  }
+  function onNodeClick(node) {
+    if (!node) return;
+    if (state.view === 'papers') setFocus({ type: 'paper', id: node.id });
+    else setFocus({ type: 'person', id: node.id });
+  }
+  function selectPaper(pi) {
+    if (state.view !== 'papers') { state.view = 'papers'; state.focus = { type: 'paper', id: pi }; writeHash(); render().then(() => setFocus({ type: 'paper', id: pi })); return; }
+    setFocus({ type: 'paper', id: pi });
+  }
+  function selectPerson(pid, openMap) {
+    const shownInAuthors = people[pid].papers.length >= state.minPapers;
+    if (openMap && state.view !== 'authors') {
+      if (!shownInAuthors) state.minPapers = MIN_CHOICES.filter((c) => c <= people[pid].papers.length).pop() || MIN_CHOICES[0];
+      state.view = 'authors';
+      state.focus = { type: 'person', id: pid };
+      writeHash();
+      render().then(() => setFocus({ type: 'person', id: pid }));
+      return;
+    }
+    setFocus({ type: 'person', id: pid }, { move: state.view === 'authors' });
+  }
+
+  // ------------------------------------------------------------------ hover + tooltip
+  const tip = $('tip');
+  let pointer = { x: 0, y: 0 };
+  document.addEventListener('pointermove', (e) => { pointer = { x: e.clientX, y: e.clientY }; if (!tip.hidden) placeTip(); }, { passive: true });
+  function placeTip() {
+    const pad = 14;
+    const w = tip.offsetWidth, hgt = tip.offsetHeight;
+    let x = pointer.x + pad, y = pointer.y + pad;
+    if (x + w > innerWidth - 8) x = pointer.x - w - pad;
+    if (y + hgt > innerHeight - 8) y = pointer.y - hgt - pad;
+    tip.style.left = `${Math.max(8, x)}px`;
+    tip.style.top = `${Math.max(8, y)}px`;
+  }
+  function showTip(parts) {
+    tip.replaceChildren(...parts);
+    tip.hidden = false;
+    placeTip();
+  }
+  function hideTip() { tip.hidden = true; }
+  function onHover(node) {
+    const id = node ? node.id : null;
+    if (id === state.hover) return;
+    state.hover = id;
+    $('graph').style.cursor = node ? 'pointer' : '';
+    redraw();
+    if (!node) { hideTip(); return; }
+    if (state.view === 'papers') {
+      const p = papers[id];
+      const cluster = p.cluster >= 0 ? DATA.paperClusters[p.cluster].label : 'Unclustered';
+      showTip([h('strong', { text: p.label }), h('div', { class: 't', text: p.title }), h('div', { class: 's', text: [p.venue, cluster].filter(Boolean).join(' · ') })]);
+    } else {
+      const person = people[id];
+      const group = person.cluster >= 0 ? DATA.authorClusters[person.cluster].label : 'No group';
+      showTip([h('strong', { text: person.name }), h('div', { class: 's', text: `${plural(person.papers.length, 'paper')} · latest ${person.year || 'n.d.'} · ${group}` })]);
+    }
+  }
+  $('graph').addEventListener('pointerleave', () => { if (state.hover !== null) { state.hover = null; redraw(); } hideTip(); });
+  $('graph').addEventListener('wheel', () => { userMoved = true; }, { passive: true });
+  $('graph').addEventListener('pointerdown', () => { userMoved = true; });
+
+  // ------------------------------------------------------------------ year legend (histogram)
+  function renderLegend() {
+    const box = $('legend');
+    const counts = new Map();
+    const source = state.view === 'papers' ? papers.map((p) => p.year)
+      : people.filter((p) => p.papers.length >= state.minPapers).map((p) => p.year);
+    for (const y of source) { const b = yearBucket(y); if (b) counts.set(b, (counts.get(b) || 0) + 1); }
+    const W = 236, H = 42, AX = 14;
+    const span = YEAR_HI - YEAR_LO + 1;
+    const bw = W / span;
+    const max = Math.max(1, ...counts.values());
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('width', W);
+    svg.setAttribute('height', H + AX);
+    svg.setAttribute('viewBox', `0 0 ${W} ${H + AX}`);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `${state.view === 'papers' ? 'Papers' : 'Authors'} per year, ${YEAR_LO} to ${YEAR_HI}; colours match the map`);
+    const f = state.transient || state.focus;
+    const fy = f && f.type === 'year' ? f.id : null;
+    for (let y = YEAR_LO; y <= YEAR_HI; y++) {
+      const c = counts.get(y) || 0;
+      if (!c) continue;
+      const hh = Math.max(1.5, (c / max) * H);
+      const r = document.createElementNS(svgNS, 'rect');
+      r.setAttribute('x', (y - YEAR_LO) * bw + 0.5);
+      r.setAttribute('y', H - hh);
+      r.setAttribute('width', Math.max(1, bw - 1));
+      r.setAttribute('height', hh);
+      r.setAttribute('rx', Math.min(1.5, bw / 3));
+      r.setAttribute('fill', fy !== null && fy !== y ? colors.dim : yearColor(y));
+      svg.append(r);
+    }
+    const base = document.createElementNS(svgNS, 'line');
+    base.setAttribute('x1', 0); base.setAttribute('x2', W); base.setAttribute('y1', H + 0.5); base.setAttribute('y2', H + 0.5);
+    base.setAttribute('stroke', colors.hairline);
+    svg.append(base);
+    const ticks = [YEAR_LO];
+    for (let y = Math.ceil((YEAR_LO + 7) / 10) * 10; y <= YEAR_HI - 6; y += 10) ticks.push(y);
+    ticks.push(YEAR_HI);
+    ticks.forEach((y, i) => {
+      const t = document.createElementNS(svgNS, 'text');
+      const x = (y - YEAR_LO + 0.5) * bw;
+      t.setAttribute('x', x);
+      t.setAttribute('y', H + AX - 2);
+      t.setAttribute('text-anchor', i === 0 ? 'start' : i === ticks.length - 1 ? 'end' : 'middle');
+      if (i === 0) t.setAttribute('x', 0);
+      if (i === ticks.length - 1) t.setAttribute('x', W);
+      t.textContent = i === 0 ? `≤${y}` : String(y);
+      svg.append(t);
+    });
+    const hit = document.createElementNS(svgNS, 'rect');
+    hit.setAttribute('x', 0); hit.setAttribute('y', 0); hit.setAttribute('width', W); hit.setAttribute('height', H + AX);
+    hit.setAttribute('fill', 'transparent');
+    hit.style.cursor = 'pointer';
+    const yearAt = (evt) => {
+      const rect = svg.getBoundingClientRect();
+      return clamp(YEAR_LO + Math.floor(((evt.clientX - rect.left) / rect.width) * span), YEAR_LO, YEAR_HI);
+    };
+    hit.addEventListener('pointermove', (evt) => {
+      const y = yearAt(evt);
+      const c = counts.get(y) || 0;
+      const what = state.view === 'papers' ? 'paper' : 'author';
+      showTip([h('strong', { text: plural(c, what) }), h('div', { class: 's', text: y === YEAR_LO ? `${y} or earlier` : String(y) })]);
+      if (!state.transient || state.transient.id !== y) {
+        state.transient = { type: 'year', id: y };
+        recomputeHighlight(); redraw(); paintLegendBars(svg, y);
+      }
+    });
+    hit.addEventListener('pointerleave', () => {
+      hideTip();
+      state.transient = null;
+      recomputeHighlight(); redraw();
+      const f2 = state.focus;
+      paintLegendBars(svg, f2 && f2.type === 'year' ? f2.id : null);
+    });
+    hit.addEventListener('click', (evt) => {
+      const y = yearAt(evt);
+      const f2 = state.focus;
+      setFocus(f2 && f2.type === 'year' && f2.id === y ? null : { type: 'year', id: y }, { move: false });
+    });
+    svg.append(hit);
+    const caption = h('div', { class: 'cap' },
+      h('span', { text: state.view === 'papers' ? 'Publication year' : 'Most recent paper' }),
+      h('span', { text: 'colour key' }));
+    box.replaceChildren(caption, svg);
+  }
+  function paintLegendBars(svg, focusYear) {
+    const span = YEAR_HI - YEAR_LO + 1;
+    const bw = 236 / span;
+    svg.querySelectorAll('rect[rx]').forEach((r) => {
+      const y = YEAR_LO + Math.round((parseFloat(r.getAttribute('x')) - 0.5) / bw);
+      r.setAttribute('fill', focusYear !== null && focusYear !== y ? colors.dim : yearColor(y));
+    });
+  }
+
+  // ------------------------------------------------------------------ focus chip
+  function focusText(f) {
+    if (!f) return null;
+    if (f.type === 'paper') return ['Paper', papers[f.id].label];
+    if (f.type === 'person') return [state.view === 'papers' ? 'Papers by' : 'Author', people[f.id].name];
+    if (f.type === 'cluster') return [state.view === 'papers' ? 'Topic' : 'Group', views[state.view].clusters[f.id].label];
+    if (f.type === 'year') return ['Year', f.id === YEAR_LO ? `${f.id} or earlier` : String(f.id)];
+    return null;
+  }
+  function renderFocusChip() {
+    const box = $('focus-chip');
+    const t = focusText(state.focus);
+    if (!t) { box.replaceChildren(); return; }
+    box.replaceChildren(h('div', { class: 'chip' },
+      h('span', {}, h('b', { text: t[0] + ': ' }), t[1]),
+      h('button', { type: 'button', 'aria-label': 'Clear selection', text: '×', onclick: () => clearFocus() })));
+  }
+
+  // ------------------------------------------------------------------ panel
+  function section(title, ...body) {
+    return h('section', {}, h('h3', { text: title }), ...body);
+  }
+  function paperRow(pi, extra) {
+    const p = papers[pi];
+    return h('button', { type: 'button', class: 'row', onclick: () => selectPaper(pi) },
+      h('span', { class: 'name', text: p.label }),
+      h('span', { class: 'n', text: extra || '' }),
+      h('span', { class: 't', text: p.title }));
+  }
+  function personPill(pid, count) {
+    return h('button', { type: 'button', class: 'pill', onclick: () => selectPerson(pid, false) },
+      people[pid].name, count ? h('small', { text: String(count) }) : null);
+  }
+  function clusterRows(kind) {
+    const list = views[kind].clusters;
+    // sizes as drawn: the co-author map only shows authors above the chosen minimum
+    const sizes = list.map((c) => c.size);
+    if (kind === 'authors') {
+      sizes.fill(0);
+      people.forEach((q) => { if (q.cluster >= 0 && q.papers.length >= state.minPapers) sizes[q.cluster] += 1; });
+    }
+    const max = Math.max(1, ...sizes);
+    const f = state.focus;
+    return h('div', { class: 'rows' }, list.map((c, cid) => {
+      if (!sizes[cid]) return null;
+      const on = f && f.type === 'cluster' && f.id === cid;
+      const row = h('button', { type: 'button', class: `row${on ? ' on' : ''}`,
+        onclick: () => setFocus(on ? null : { type: 'cluster', id: cid }, { move: !on }),
+        onpointerenter: () => { state.transient = { type: 'cluster', id: cid }; recomputeHighlight(); redraw(); },
+        onpointerleave: () => { state.transient = null; recomputeHighlight(); redraw(); } },
+      h('span', { class: 'name', text: c.label || `Cluster ${cid + 1}` }),
+      h('span', { class: 'n', text: fmt(sizes[cid]) }),
+      h('span', { class: 'bar' }, h('i', { style: `width:${(100 * sizes[cid]) / max}%` })));
+      return row;
+    }));
+  }
+  function renderOverview() {
+    const isPapers = state.view === 'papers';
+    const shown = isPapers ? papers.length : people.filter((p) => p.papers.length >= state.minPapers).length;
+    const linkCount = isPapers ? DATA.paperLinks.length
+      : DATA.authorLinks.filter(([a, b]) => people[a].papers.length >= state.minPapers && people[b].papers.length >= state.minPapers).length;
+    const lede = isPapers
+      ? 'Each dot is a paper. Lines join papers with similar titles, keywords and abstracts, and the labelled regions are the topic clusters those links form. Colour shows the publication year.'
+      : `Each dot is an author with at least ${state.minPapers} papers in the library, sized by how many. Lines join people who wrote together, and the labelled regions are groups who publish together. Colour shows their most recent paper.`;
+    const top = peopleByCount.slice(0, 10);
+    return [
+      h('div', {}, h('p', { class: 'lede', text: lede })),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('strong', { text: fmt(shown) }), h('span', { text: isPapers ? 'papers' : 'authors shown' })),
+        h('div', { class: 'stat' }, h('strong', { text: fmt(linkCount) }), h('span', { text: isPapers ? 'similarity links' : 'co-author links' })),
+        h('div', { class: 'stat' }, h('strong', { text: fmt(isPapers ? DATA.paperClusters.length : new Set(people.filter((q) => q.cluster >= 0 && q.papers.length >= state.minPapers).map((q) => q.cluster)).size) }), h('span', { text: isPapers ? 'topics' : 'groups' }))),
+      section(isPapers ? 'Topics' : 'Collaboration groups', clusterRows(state.view)),
+      section('Most-read authors', h('div', { class: 'rows' }, top.map((pid) =>
+        h('button', { type: 'button', class: 'row', onclick: () => selectPerson(pid, state.view === 'authors') },
+          h('span', { class: 'name', text: people[pid].name }),
+          h('span', { class: 'n', text: plural(people[pid].papers.length, 'paper') }))))),
+      h('p', { class: 'foot', text: `Built ${prettyDate(DATA.meta.built)} from ${DATA.meta.source}. Click a dot, a topic or a year bar to highlight it; Esc clears.` }),
+    ];
+  }
+  function renderPaperPanel(pi) {
+    const p = papers[pi];
+    const similar = paperNbrs[pi].slice(0, 6);
+    const shared = sharedAuthorPapers(pi).slice(0, 6);
+    const authors = p.authors;
+    const shownAuthors = authors.slice(0, 14);
+    const scholar = `https://scholar.google.com/scholar?q=${encodeURIComponent('"' + p.title + '"')}`;
+    return [
+      h('button', { type: 'button', class: 'back', onclick: () => clearFocus(), text: '← Overview' }),
+      h('div', {}, h('div', { class: 'eyebrow', text: p.label }), h('h2', { class: 'paper-title', text: p.title })),
+      h('p', { class: 'meta', text: [p.venue, p.year].filter(Boolean).join(' · ') || 'No venue or year recorded' }),
+      authors.length ? section(`Authors (${authors.length})`, h('div', { class: 'chips' },
+        shownAuthors.map((a) => personPill(a)),
+        authors.length > shownAuthors.length ? h('span', { class: 'pill', text: `+${authors.length - shownAuthors.length} more` }) : null)) : null,
+      p.cluster >= 0 ? section('Topic', h('div', { class: 'chips' },
+        h('button', { type: 'button', class: 'pill', onclick: () => setFocus({ type: 'cluster', id: p.cluster }),
+          text: DATA.paperClusters[p.cluster].label }))) : null,
+      p.terms.length || p.keywords.length ? section('Key terms', h('p', { class: 'terms', text: [...p.terms, ...p.keywords.filter((k) => !p.terms.includes(k.toLowerCase()))].slice(0, 10).join(' · ') })) : null,
+      similar.length ? section('Most similar in your library', h('div', { class: 'rows' }, similar.map(([j, w]) => paperRow(j, `${Math.round(w * 100)}%`)))) : null,
+      shared.length ? section('Shares authors with', h('div', { class: 'rows' }, shared.map(([j, c]) => paperRow(j, c > 1 ? `${c} authors` : '')))) : null,
+      h('div', { class: 'actions' }, h('a', { class: 'action', href: scholar, target: '_blank', rel: 'noopener noreferrer', text: 'Find on Google Scholar ↗' })),
+    ];
+  }
+  function renderPersonPanel(pid) {
+    const person = people[pid];
+    const list = [...person.papers].sort((a, b) => (papers[b].year || 0) - (papers[a].year || 0));
+    const yrs = list.map((i) => papers[i].year).filter(Boolean);
+    const span = yrs.length ? (Math.min(...yrs) === Math.max(...yrs) ? String(yrs[0]) : `${Math.min(...yrs)}–${Math.max(...yrs)}`) : '';
+    const partners = [...coauthors[pid]].sort((a, b) => b[1] - a[1] || people[b[0]].papers.length - people[a[0]].papers.length).slice(0, 12);
+    const inAuthors = person.papers.length >= MIN_CHOICES[0];
+    const actions = [];
+    if (state.view === 'papers' && inAuthors) actions.push(h('button', { type: 'button', class: 'action', onclick: () => selectPerson(pid, true), text: 'Show on the co-author map' }));
+    if (state.view === 'authors') actions.push(h('button', { type: 'button', class: 'action', onclick: () => { state.view = 'papers'; writeHash(); render().then(() => setFocus({ type: 'person', id: pid }, { move: false })); }, text: 'Show their papers on the topic map' }));
+    return [
+      h('button', { type: 'button', class: 'back', onclick: () => clearFocus(), text: '← Overview' }),
+      h('div', {}, h('div', { class: 'eyebrow', text: 'Author' }), h('h2', { text: person.name })),
+      h('p', { class: 'meta', text: `${plural(person.papers.length, 'paper')} in your library${span ? ' · ' + span : ''}` }),
+      person.cluster >= 0 ? section('Collaboration group', h('div', { class: 'chips' },
+        h('button', { type: 'button', class: 'pill', text: DATA.authorClusters[person.cluster].label,
+          onclick: () => { if (state.view === 'authors') setFocus({ type: 'cluster', id: person.cluster }); else selectPerson(pid, true); } }))) : null,
+      actions.length ? h('div', { class: 'actions' }, actions) : null,
+      partners.length ? section('Writes most with', h('div', { class: 'chips' }, partners.map(([q, c]) => personPill(q, c)))) : null,
+      section('Papers', h('div', { class: 'rows' }, list.map((i) => paperRow(i, papers[i].year ? String(papers[i].year) : '')))),
+    ];
+  }
+  function renderPanel() {
+    const panel = $('panel');
+    const f = state.focus;
+    let content;
+    if (f && f.type === 'paper') content = renderPaperPanel(f.id);
+    else if (f && f.type === 'person') content = renderPersonPanel(f.id);
+    else content = renderOverview();
+    panel.replaceChildren(...content.filter(Boolean));
+    panel.scrollTop = 0;
+  }
+  function prettyDate(iso) {
+    const d = new Date(`${iso}T12:00:00`);
+    return isNaN(d) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  // ------------------------------------------------------------------ list view
+  const listSort = { papers: { key: 'year', dir: -1 }, authors: { key: 'papers', dir: -1 } };
+  function renderList() {
+    const box = $('listview');
+    const isPapers = state.view === 'papers';
+    const subset = lit && primaryId(state.focus) === null ? lit : null;
+    const ids = (subset ? nodes.filter((n) => subset.has(n.id)) : nodes).map((n) => n.id);
+    const sort = listSort[state.view];
+    const cols = isPapers
+      ? [['year', 'Year'], ['label', 'Paper'], ['venue', 'Venue'], ['topic', 'Topic']]
+      : [['name', 'Author'], ['papers', 'Papers'], ['latest', 'Latest'], ['group', 'Group']];
+    const value = (id, key) => {
+      if (isPapers) {
+        const p = papers[id];
+        return key === 'year' ? p.year || 0 : key === 'label' ? fold(p.label) : key === 'venue' ? fold(p.venue) : p.cluster;
+      }
+      const q = people[id];
+      return key === 'name' ? fold(q.last + ' ' + q.name) : key === 'papers' ? q.papers.length : key === 'latest' ? q.year || 0 : q.cluster;
+    };
+    ids.sort((a, b) => {
+      const va = value(a, sort.key), vb = value(b, sort.key);
+      return (va < vb ? -1 : va > vb ? 1 : 0) * sort.dir || a - b;
+    });
+    const head = h('tr', {}, cols.map(([key, label]) => h('th', { scope: 'col' },
+      h('button', { type: 'button', 'aria-sort': sort.key === key ? (sort.dir > 0 ? 'ascending' : 'descending') : null,
+        onclick: () => { sort.dir = sort.key === key ? -sort.dir : (key === 'year' || key === 'papers' || key === 'latest' ? -1 : 1); sort.key = key; renderList(); },
+        text: label }))));
+    const primaryNow = primaryId(state.focus);
+    const rows = ids.map((id) => {
+      if (isPapers) {
+        const p = papers[id];
+        return h('tr', { class: id === primaryNow ? 'on' : null, onclick: () => setFocus({ type: 'paper', id }, { move: false }) },
+          h('td', { class: 'num', text: p.year ? String(p.year) : '—' }),
+          h('td', {}, h('div', { class: 's', text: p.label }), h('div', { class: 't', text: p.title })),
+          h('td', { class: 's', text: p.venue }),
+          h('td', { class: 's', text: p.cluster >= 0 ? DATA.paperClusters[p.cluster].label : '' }));
+      }
+      const q = people[id];
+      return h('tr', { class: id === primaryNow ? 'on' : null, onclick: () => setFocus({ type: 'person', id }, { move: false }) },
+        h('td', { text: q.name }),
+        h('td', { class: 'num', text: fmt(q.papers.length) }),
+        h('td', { class: 'num', text: q.year ? String(q.year) : '—' }),
+        h('td', { class: 's', text: q.cluster >= 0 ? DATA.authorClusters[q.cluster].label : '' }));
+    });
+    const caption = h('caption', { class: 's', style: 'text-align:left;padding:10px', text: subset
+      ? `${plural(ids.length, isPapers ? 'paper' : 'author')} in the current selection`
+      : `All ${plural(ids.length, isPapers ? 'paper' : 'author')}` });
+    box.replaceChildren(h('table', {}, caption, h('thead', {}, head), h('tbody', {}, rows)));
+  }
+
+  // ------------------------------------------------------------------ search
+  const index = [
+    ...people.map((p, i) => ({ kind: 'author', id: i, key: fold(p.name), main: p.name, sub: plural(p.papers.length, 'paper'), weight: p.papers.length })),
+    ...papers.map((p, i) => ({ kind: 'paper', id: i, key: fold(`${p.label} ${p.title}`), main: p.title, sub: p.label, weight: 0 })),
+  ];
+  const input = $('search');
+  const listbox = $('search-list');
+  let results = [];
+  let cursor = -1;
+  function runSearch() {
+    const q = fold(input.value).trim();
+    if (q.length < 2) { closeResults(); return; }
+    const words = q.split(/\s+/);
+    const wordStart = (key) => words.every((w) => key.split(/[\s,.&'-]+/).some((part) => part.startsWith(w)));
+    const score = (e) => (e.kind === 'author'
+      ? (wordStart(e.key) ? 4 : 0) + (e.key.startsWith(q) ? 1 : 0) + Math.min(e.weight, 40) / 40
+      : (e.key.startsWith(q) ? 2 : 0) + (wordStart(e.key) ? 1 : 0) + (papers[e.id].year || 0) / 1e5);
+    const ranked = index
+      .filter((e) => words.every((w) => e.key.includes(w)))
+      .map((e) => ({ e, s: score(e) }))
+      .sort((a, b) => b.s - a.s);
+    const who = ranked.filter((x) => x.e.kind === 'author').slice(0, 4);
+    const what = ranked.filter((x) => x.e.kind === 'paper').slice(0, 9 - who.length);
+    results = [...who, ...what].sort((a, b) => b.s - a.s).map((x) => x.e);
+    cursor = results.length ? 0 : -1;
+    paintResults();
+  }
+  function paintResults() {
+    listbox.replaceChildren(...(results.length ? results.map((e, i) => h('li', {
+      role: 'option', id: `opt-${i}`, 'aria-selected': i === cursor ? 'true' : 'false',
+      onpointerdown: (evt) => { evt.preventDefault(); choose(e); },
+    }, h('span', { class: 'kind', text: e.kind }), h('span', { class: 'main', text: e.main }), h('span', { class: 'sub', text: e.sub })))
+      : [h('li', { class: 'empty', text: 'No author or paper matches that.' })]));
+    listbox.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    input.setAttribute('aria-activedescendant', cursor >= 0 ? `opt-${cursor}` : '');
+  }
+  function closeResults() {
+    listbox.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    results = []; cursor = -1;
+  }
+  function choose(e) {
+    closeResults();
+    input.value = '';
+    input.blur();
+    if (e.kind === 'paper') selectPaper(e.id);
+    else selectPerson(e.id, state.view === 'authors');
+  }
+  input.addEventListener('input', runSearch);
+  input.addEventListener('focus', () => { if (input.value) runSearch(); });
+  input.addEventListener('blur', () => setTimeout(closeResults, 120));
+  input.addEventListener('keydown', (evt) => {
+    if (evt.key === 'ArrowDown' && results.length) { cursor = (cursor + 1) % results.length; paintResults(); evt.preventDefault(); }
+    else if (evt.key === 'ArrowUp' && results.length) { cursor = (cursor - 1 + results.length) % results.length; paintResults(); evt.preventDefault(); }
+    else if (evt.key === 'Enter' && cursor >= 0) { choose(results[cursor]); evt.preventDefault(); }
+    else if (evt.key === 'Escape') { input.value = ''; closeResults(); }
+  });
+
+  // ------------------------------------------------------------------ controls
+  function syncControls() {
+    document.querySelectorAll('[data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+    document.querySelectorAll('[data-display]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.display === state.display)));
+    $('min-field').hidden = state.view !== 'authors';
+    $('min-papers').value = String(state.minPapers);
+  }
+  document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
+    if (state.view === b.dataset.view) return;
+    state.view = b.dataset.view;
+    const f = state.focus;
+    // keep a person or paper selected across views; drop view-specific focuses
+    state.focus = f && (f.type === 'person' || f.type === 'paper' || f.type === 'year') ? f : null;
+    writeHash();
+    render().then(() => { renderPanel(); if (state.focus) moveTo(state.focus); });
+  }));
+  document.querySelectorAll('[data-display]').forEach((b) => b.addEventListener('click', () => {
+    if (state.display === b.dataset.display) return;
+    state.display = b.dataset.display;
+    render();
+  }));
+  const minSelect = $('min-papers');
+  MIN_CHOICES.forEach((n) => minSelect.append(h('option', { value: String(n), text: `${n}+` })));
+  minSelect.addEventListener('change', () => {
+    state.minPapers = Number(minSelect.value);
+    const f = state.focus;
+    if (f && f.type === 'person' && people[f.id].papers.length < state.minPapers) state.focus = null;
+    if (f && f.type === 'cluster') state.focus = null;
+    render().then(renderPanel);
+  });
+  $('fit').addEventListener('click', () => { userMoved = true; fit(); });
+  document.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Escape' && document.activeElement !== input) clearFocus();
+  });
+
+  // ------------------------------------------------------------------ hash (#papers / #authors)
+  function writeHash() {
+    try { history.replaceState(null, '', `#${state.view}`); } catch (e) { /* sandboxed */ }
+  }
+  function readHash() {
+    const name = (location.hash || '').replace('#', '');
+    if (name === 'authors' || name === 'papers') state.view = name;
+  }
+  addEventListener('hashchange', () => {
+    const before = state.view;
+    readHash();
+    if (state.view !== before) { state.focus = null; render().then(renderPanel); }
+  });
+
+  // ------------------------------------------------------------------ theme + resize
+  function onTheme() {
+    readTheme();
+    if (graphKind === '3d' && graph) graph.backgroundColor(colors.surface);
+    redraw();
+    renderLegend();
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+  new ResizeObserver(() => { if (graph) { const [w, hgt] = size(); graph.width(w).height(hgt); } }).observe($('stage'));
+
+  // ------------------------------------------------------------------ go
+  const m = DATA.meta;
+  $('summary').textContent = [
+    plural(m.papers, 'paper'),
+    plural(m.people, 'author'),
+    m.years ? `${m.years[0]}–${m.years[1]}` : null,
+    `updated ${prettyDate(m.built)}`,
+  ].filter(Boolean).join(' · ');
+  readTheme();
+  readHash();
+  renderPanel();
+  render();
+})();
+</script>
+</body>
+</html>
