@@ -1,0 +1,4 @@
+pybtex>=0.24
+requests>=2.25
+numpy>=1.21
+networkx>=2.8
