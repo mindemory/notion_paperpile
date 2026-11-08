@@ -1,0 +1,117 @@
+name: Library
+
+# Runs whenever Paperpile pushes a new export (or the code changes):
+# tests, rebuilds the library map, and adds new papers to Notion.
+on:
+  push:
+    paths:
+      - paperpile_references.bib
+      - newpage.json
+      - "*.py"
+      - graph/**
+      - tests/**
+      - requirements.txt
+      - .github/workflows/library.yml
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Notion sync: only list what would be added"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Paperpile often pushes several commits in a row; handle them one at a time.
+concurrency:
+  group: library-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt pytest
+      - run: python -m pytest -q
+
+  map:
+    name: Library map
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      pages: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python build_graph.py --out site/index.html
+      - uses: actions/upload-artifact@v7
+        with:
+          name: library-map
+          path: site/index.html
+          retention-days: 30
+      - name: Check whether GitHub Pages publishes from Actions
+        id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh api "repos/${{ github.repository }}/pages" --jq .build_type 2>/dev/null)" = "workflow" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Library map::Saved as the 'library-map' run artifact. To publish it on GitHub Pages, set Settings > Pages > Source to 'GitHub Actions'."
+          fi
+      - if: steps.pages.outputs.enabled == 'true' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  publish:
+    name: Publish map
+    needs: map
+    if: needs.map.outputs.pages == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
+  notion:
+    name: Sync to Notion
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Add new Paperpile papers to Notion
+        run: |
+          if [ -z "$NOTION_TOKEN" ] || [ -z "$NOTION_DATABASE_ID" ]; then
+            echo "::notice title=Notion sync::Skipped. Add NOTION_TOKEN and NOTION_DATABASE_ID as repository secrets to sync on every Paperpile update."
+            exit 0
+          fi
+          python paperpile_api.py ${{ inputs.dry_run && '--dry-run' || '' }}
