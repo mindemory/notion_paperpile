@@ -73,6 +73,16 @@ def test_clean_latex():
     assert library.clean_latex(None) == ""
 
 
+def test_clean_latex_math():
+    assert library.clean_latex("The $\\vartheta$-$\\gamma$ neural code") == "The \u03b8-\u03b3 neural code"
+    assert library.clean_latex("{$\\alpha$-Band} activity") == "\u03b1-Band activity"
+    assert library.clean_latex("sensorimotor $\\mu$-rhythm") == "sensorimotor \u03bc-rhythm"
+    assert library.clean_latex("$\\alpha_2$ and $\\Delta$F/F") == "\u03b12 and \u0394F/F"
+    # Dollar amounts are not math.
+    assert library.clean_latex("a bonus from $0 to $10") == "a bonus from $0 to $10"
+    assert library.clean_latex("costs \\$5") == "costs $5"
+
+
 def test_title_key_ignores_braces_case_and_punctuation():
     raw = "{TMS} Does Not Increase {BOLD} Activity: A Review"
     assert library.title_key(raw) == library.title_key("TMS does not increase BOLD activity - a review")

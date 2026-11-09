@@ -38,6 +38,30 @@ _LATEX_SYMBOLS = {
 }
 _NOT_A_PERSON = {"others", "et al", "et al.", "anonymous"}
 
+# Math that turns up in older exports: "$\alpha$-band", "The $\vartheta$-$\gamma$ neural code".
+# Converted before the LaTeX decoder runs, which pairs up the "$" signs wrongly
+# when it meets a command it doesn't know (it read "$-$" there as a minus sign).
+_GREEK = dict(
+    zip(
+        "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi pi rho sigma tau upsilon phi chi psi omega".split(),
+        "αβγδεζηθικλμνξπρστυφχψω",
+    )
+)
+_MATH_SYMBOLS = {
+    **_GREEK,
+    **{name.capitalize(): letter.upper() for name, letter in _GREEK.items()},
+    **{"var" + name: _GREEK[name] for name in ("epsilon", "theta", "phi", "rho", "sigma", "pi")},
+    "pm": "±", "times": "×", "cdot": "·", "sim": "~", "approx": "≈",
+    "le": "≤", "leq": "≤", "ge": "≥", "geq": "≥", "to": "→", "rightarrow": "→", "infty": "∞",
+}
+# Only $...$ holding a command counts as math, so "$0 to $10" in an abstract stays as it is.
+_MATH = re.compile(r"(?<!\\)\$([^$]*\\[A-Za-z][^$]*)(?<!\\)\$")
+
+
+def _math_to_text(match: re.Match) -> str:
+    inner = re.sub(r"\\([A-Za-z]+)\s*", lambda m: _MATH_SYMBOLS.get(m.group(1), m.group(0)), match.group(1))
+    return re.sub(r"[\^_]", "", inner)
+
 
 def clean_latex(text: Optional[str]) -> str:
     """Turn a BibTeX field into readable plain text.
@@ -50,6 +74,7 @@ def clean_latex(text: Optional[str]) -> str:
     s = str(text)
     s = re.sub(r"\\(?:url|path)\s*\{([^}]*)\}", r"\1", s)
     s = re.sub(r"\\href\s*\{[^}]*\}\s*\{([^}]*)\}", r"\1", s)
+    s = _MATH.sub(_math_to_text, s)
     if "\\" in s or "$" in s:  # the decoder is slow; most fields only carry braces
         try:
             s = codecs.decode(s, "ulatex")
