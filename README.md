@@ -50,6 +50,7 @@ python build_graph.py   # writes site/index.html; open it in a browser
 - Colour shows publication year (or an author's latest paper), and the histogram in the corner doubles as the key. Hover it to light up a year.
 - Search any author or paper. Clicking an author on the topic map lights up all of their papers. Click any dot for details, similar papers, co-authors and a Google Scholar link.
 - **2D**, **3D** and **List** views; the list is a sortable table of the current selection.
+- The address remembers the view, so links can open it directly: `#authors` for the co-author map, `#3d` for the topic map in 3D, `#authors/3d` for both.
 
 The page is a single HTML file with the data embedded. It loads its graph libraries from jsDelivr, so it needs an internet connection. It is built only from `paperpile_references.bib`, which is already public in this repository; nothing from Notion goes into it.
 
@@ -60,7 +61,7 @@ The `Library` workflow runs on every push that touches the bibliography or the c
 | Job | What it does | Turn it on |
 | --- | --- | --- |
 | Tests | Runs `pytest`, including a check that the latest Paperpile export parses. | Always on. |
-| Library map | Builds the map and attaches it to the run as the `library-map` artifact. On `main` it also publishes it to GitHub Pages. | Settings → Pages → Source: **GitHub Actions**. The map then lives at https://mindemory.github.io/notion_paperpile/ |
+| Library map | Builds the map and attaches it to the run as the `library-map` artifact. On `main` it also publishes it to GitHub Pages. | Settings → Pages → Source: **GitHub Actions**. The map then lives at https://www.mindemory.io/notion_paperpile/ |
 | Sync to Notion | Runs `python paperpile_api.py` on `main`, one run at a time. | Add `NOTION_TOKEN` and `NOTION_DATABASE_ID` under Settings → Secrets and variables → Actions. |
 
 Until those are set up, the Pages and Notion steps skip with a notice instead of failing. To try the sync from GitHub first, open Actions → Library → Run workflow and tick "only list what would be added".
