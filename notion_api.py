@@ -110,6 +110,19 @@ class NotionClient:
         """Move a page to Notion's trash (restorable from there)."""
         return self.request("PATCH", f"/pages/{page_id}", {"archived": True})
 
+    def page_has_content(self, page_id: str) -> bool:
+        """True if anything is written inside the page itself (not just blank lines)."""
+        data = self.request("GET", f"/blocks/{page_id}/children?page_size=20")
+        if data.get("has_more"):
+            return True
+        for block in data.get("results", []):
+            kind = block.get("type")
+            body = block.get(kind) or {}
+            # Paragraph text is "rich_text" since API version 2022-06-28 and "text" before it.
+            if kind != "paragraph" or block.get("has_children") or body.get("rich_text") or body.get("text"):
+                return True
+        return False
+
 
 def _error_message(res: requests.Response) -> str:
     try:

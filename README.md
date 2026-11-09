@@ -37,7 +37,7 @@ python paperpile_api.py --dedupe   # move repeated copies of a paper to Notion's
 python paperpile_api.py --tidy     # "Smith et. al.,2020" -> "Smith et al., 2020", strip {braces}
 ```
 
-`--dedupe` keeps the copy you have written notes, tags or a status on (or the oldest copy if none has any), and skips papers where more than one copy has notes. Anything it removes can be restored from Notion's Trash.
+`--dedupe` keeps the copy you have written notes, tags or a status on, in its columns or inside the page (or the oldest copy if none has any), and skips papers where more than one copy has notes. Anything it removes can be restored from Notion's Trash.
 
 ### Library Map
 

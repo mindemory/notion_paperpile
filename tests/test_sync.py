@@ -26,9 +26,13 @@ def page(pid, title, label="Curtis, 2020", created="2023-01-01T00:00:00.000Z", *
 
 
 class FakeClient:
-    def __init__(self, pages):
+    def __init__(self, pages, with_content=()):
         self.pages = pages
+        self.with_content = set(with_content)
         self.created, self.updated, self.archived = [], [], []
+
+    def page_has_content(self, page_id):
+        return page_id in self.with_content
 
     def query_database(self, database_id):
         return self.pages
@@ -157,6 +161,18 @@ def test_dedupe_keeps_annotated_or_oldest_copy(template):
     assert sorted(client.archived) == ["a2", "b1"]
 
 
+def test_dedupe_keeps_copy_with_notes_inside_the_page(template):
+    pages = [
+        page("e1", "Theta bursts", created="2022-05-01"),
+        page("e2", "{Theta} Bursts", created="2024-07-06"),
+        page("f1", "Delta waves", created="2022-05-01"),
+        page("f2", "Delta Waves", created="2024-07-06"),
+    ]
+    client = FakeClient(pages, with_content={"e2", "f1", "f2"})
+    sync.run_dedupe(client, "db", template, log=lambda _: None)
+    assert client.archived == ["e1"]  # f1 and f2 both have notes: left for a human
+
+
 def test_credentials(monkeypatch, tmp_path):
     legacy = tmp_path / "notion_ids.csv"
     legacy.write_text("\ndatabase-id\nsecret-token\n")
@@ -237,6 +253,22 @@ def test_client_retries_reads_after_server_errors():
     session = Session(Response(502), requests.ConnectionError("reset"), Response(200, {"results": [], "has_more": False}))
     assert client_for(session, []).query_database("db") == []
     assert len(session.calls) == 3
+
+
+def test_client_detects_page_content():
+    blank = {"type": "paragraph", "paragraph": {"text": []}, "has_children": False}
+    note = {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "key result"}]}}
+    heading = {"type": "heading_2", "heading_2": {"text": []}}
+    session = Session(
+        Response(200, {"results": [], "has_more": False}),
+        Response(200, {"results": [blank, blank], "has_more": False}),
+        Response(200, {"results": [blank, note], "has_more": False}),
+        Response(200, {"results": [heading], "has_more": False}),
+        Response(200, {"results": [blank], "has_more": True}),
+    )
+    client = client_for(session, [])
+    assert [client.page_has_content("p") for _ in range(5)] == [False, False, True, True, True]
+    assert session.calls[0][:2] == ("GET", "https://api.notion.com/v1/blocks/p/children?page_size=20")
 
 
 def test_client_raises_on_client_errors():

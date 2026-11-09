@@ -139,13 +139,16 @@ def has_user_data(page: Dict[str, Any], template: Dict[str, Any]) -> bool:
 
 
 def plan_dedupe(
-    pages: List[Dict[str, Any]], template: Dict[str, Any]
+    pages: List[Dict[str, Any]],
+    template: Dict[str, Any],
+    has_content: Optional[Callable[[Dict[str, Any]], bool]] = None,
 ) -> Tuple[List[Dict[str, Any]], List[List[Dict[str, Any]]]]:
     """Extra copies of the same paper to archive, and groups that need a human.
 
-    In each group of rows sharing a title, keep the copy that has your notes,
-    or the oldest copy if none has. Groups where several copies carry notes
-    are left alone and reported instead.
+    In each group of rows sharing a title, keep the copy that has your notes
+    (filled-in columns, or anything written inside the page when ``has_content``
+    is given), or the oldest copy if none has. Groups where several copies
+    carry notes are left alone and reported instead.
     """
     groups: Dict[str, List[Dict[str, Any]]] = {}
     for page in pages:
@@ -156,7 +159,9 @@ def plan_dedupe(
     for group in groups.values():
         if len(group) < 2:
             continue
-        annotated = [p for p in group if has_user_data(p, template)]
+        annotated = [
+            p for p in group if has_user_data(p, template) or (has_content is not None and has_content(p))
+        ]
         if len(annotated) > 1:
             conflicts.append(group)
             continue
@@ -275,7 +280,8 @@ def run_dedupe(
     log: Callable[[str], None] = print,
 ) -> int:
     pages = client.query_database(database_id)
-    to_archive, conflicts = plan_dedupe(pages, template)
+    log("Checking repeated entries for notes written inside the page...")
+    to_archive, conflicts = plan_dedupe(pages, template, has_content=lambda p: client.page_has_content(p["id"]))
     log(f"{len(to_archive)} duplicate entries can be moved to Notion's trash (out of {len(pages)}).")
     for page in to_archive:
         props = page["properties"]
