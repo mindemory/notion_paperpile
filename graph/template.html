@@ -1364,6 +1364,7 @@ button.pill:hover { border-color: var(--baseline); background: var(--wash); }
   document.querySelectorAll('[data-display]').forEach((b) => b.addEventListener('click', () => {
     if (state.display === b.dataset.display) return;
     state.display = b.dataset.display;
+    writeHash();
     render();
   }));
   const minSelect = $('min-papers');
@@ -1380,18 +1381,26 @@ button.pill:hover { border-color: var(--baseline); background: var(--wash); }
     if (evt.key === 'Escape' && document.activeElement !== input) clearFocus();
   });
 
-  // ------------------------------------------------------------------ hash (#papers / #authors)
+  // ------------------------------------------------------------------ hash
+  // #papers or #authors picks the map, /3d or /list the display: #authors/3d.
+  // A bare #3d opens the topic map in 3D, so links can go straight to it.
   function writeHash() {
-    try { history.replaceState(null, '', `#${state.view}`); } catch (e) { /* sandboxed */ }
+    const display = state.display === '2d' ? '' : `/${state.display}`;
+    try { history.replaceState(null, '', `#${state.view}${display}`); } catch (e) { /* sandboxed */ }
   }
   function readHash() {
-    const name = (location.hash || '').replace('#', '');
-    if (name === 'authors' || name === 'papers') state.view = name;
+    let display = '2d';
+    for (const part of (location.hash || '').replace('#', '').split('/')) {
+      if (part === 'authors' || part === 'papers') state.view = part;
+      else if (part === '3d' || part === 'list') display = part;
+    }
+    state.display = display;
   }
   addEventListener('hashchange', () => {
-    const before = state.view;
+    const view = state.view, display = state.display;
     readHash();
-    if (state.view !== before) { state.focus = null; render().then(renderPanel); }
+    if (state.view !== view) { state.focus = null; render().then(renderPanel); }
+    else if (state.display !== display) render();
   });
 
   // ------------------------------------------------------------------ theme + resize
