@@ -1,1 +1,10 @@
 __pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+.env
+notion_ids.csv
+# built by build_graph.py (and by the workflow for GitHub Pages)
+site/
